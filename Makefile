@@ -73,7 +73,7 @@ first: all
 ####### Build Rules
 
 all: Makefile $(TARGET).$(PLATFORM)
-	cp $(TARGET).$(PLATFORM) /opt/dgtDriver/dgtdrv/out
+	cp $(TARGET).$(PLATFORM) /opt/dgtdrv/out
 	groff -man -T html dgtdrv.3 > dgtdrv-3.html
 	groff -man -T html dgtdrv.6 > dgtdrv-6.html
 
