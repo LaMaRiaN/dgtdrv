@@ -1,0 +1,111 @@
+--- xboard_4.2.7-2/backend.c	2007-07-01 21:41:18.869844109 +0200
++++ xboard-4.2.7/backend.c	2007-07-01 21:48:52.138171609 +0200
+@@ -4141,6 +4141,100 @@
+ 	return;
+     }
+ 
++    /*------------------------------------------------------------*/
++    /* Input Engine Protocol                                      */
++    /* This enables the use of external hardware which sends      */
++    /* their data by the Input Engine Protocol, e.g. dgtdrv       */
++    /* which enables the use of a DGT Electronic Chess Board      */
++    /* in engine-tournament mode.                                 */
++    /*                                                            */
++    /* IEP passes all extended commands encoded as info strings,  */
++    /* to avoid disturbing GUIs not aware of these extensions.    */
++    /*                                                            */
++    /* Details at: http://dgtdrv.sourceforge.net                  */
++    /*                                                            */
++   if (strstr(message, "info") != NULL ) {
++       if (strstr(message, "!move now!")) {
++          SendToProgram("?\n", cps->other);
++       }
++       else if (strstr(message, "!new game!")) {
++       }
++       else if (strstr(message, "!end game 1-0!")) {
++            GameEnds(WhiteWins, "White wins", GE_ENGINE);
++            return;
++       }
++       else if (strstr(message, "!end game 0-1!")) {
++            GameEnds(BlackWins, "Black wins", GE_ENGINE);
++            return;
++       }
++       else if (strstr(message, "!end game 1/2-1/2!")) {
++            GameEnds(GameIsDrawn, "Draw agreed", GE_ENGINE);
++            return;
++       }
++       /* the following 4 messages need not to be handled as 
++        * the current FEN-handling resets the game anyway
++        */
++       else if (strstr(message, "!enter setup mode!")) {
++       }
++       else if (strstr(message, "!end setup mode!")) {
++       }
++       else if (strstr(message, "!white to move!")) {
++       }
++       else if (strstr(message, "!black to move!")) {
++       }
++       else if (strstr(message, "FEN ")) {
++            char *fenstr;
++            Board initial_position;
++
++            fenstr = message+9;
++
++            startedFromSetupPosition = TRUE;
++            ParseFEN(initial_position, &blackPlaysFirst, fenstr);
++            CopyBoard(boards[0], initial_position);
++            if (blackPlaysFirst) {
++               currentMove = forwardMostMove = backwardMostMove = 1;
++               CopyBoard(boards[1], initial_position);
++               strcpy(moveList[0], "");
++               strcpy(parseList[0], "");
++               timeRemaining[0][1] = whiteTimeRemaining;
++               timeRemaining[1][1] = blackTimeRemaining;
++               if (commentList[0] != NULL) {
++                   commentList[1] = commentList[0];
++                   commentList[0] = NULL;
++               }
++            } else {
++                currentMove = forwardMostMove = backwardMostMove = 0;
++            }
++            yyboardindex = forwardMostMove;
++            free(gameInfo.fen);
++            gameInfo.fen = NULL;
++            ClearHighlights();
++            DrawPosition(TRUE, boards[currentMove]);
++       }
++       else if (strstr(message, "# Wrong move performed:")) {
++           char *wrongmove;
++           wrongmove = message + 7;
++           DisplayError(wrongmove, 0);
++       }
++       /* Handling for the external clock */
++       char *timestr;
++       if (strstr(message, "# Time")) {
++           timestr = message + 19;
++
++           if (strstr(message, "White:")) {
++              whiteTimeRemaining = atoi(timestr)*1000;
++              timeRemaining[0][forwardMostMove] = whiteTimeRemaining;
++           }
++           if (strstr(message, "Black:")) {
++              blackTimeRemaining = atoi(timestr)*1000;
++              timeRemaining[1][forwardMostMove] = blackTimeRemaining;
++           }
++           DisplayBothClocks();
++       }
++    }
++    /* End of Input Engine Protocol extensions                    */
++    /*------------------------------------------------------------*/
++
+     /*
+      * Ignore other messages if game is not in progress
+      */
+@@ -4311,7 +4405,6 @@
+ 	}
+     }
+ 
+-    
+     /*
+      * Look for thinking output
+      */

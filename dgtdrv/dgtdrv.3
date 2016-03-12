@@ -1,0 +1,683 @@
+.\" -*-nroff-*-
+.\"
+.\"
+.\"     Copyright (C) 2007 Alexander Wagner a.wagner@stellarcom.org
+.\"
+.\"     This program is free software; you can redistribute it and/or modify
+.\"     it under the terms of the GNU General Public License as published by
+.\"     the Free Software Foundation; either version 2 of the License, or
+.\"     (at your option) any later version.
+.\"
+.\"     This program is distributed in the hope that it will be useful,
+.\"     but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\"     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\"     GNU General Public License for more details.
+.\"
+.\"     You should have received a copy of the GNU General Public License
+.\"     along with this program; if not, write to the Free Software
+.\"     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
+.\"
+.TH dgtdrv Protocol 3 "January 2007" "dgtdrv" "Protocol Description"
+.SH NAME
+dgtdrv \- a chess engine to interface with the DGT Digital Chess Boards
+.SH SYNOPSIS
+.PP
+.B dgtdrv
+<port>
+[l|r][a|b|w]
+.SH DESCRIPTION
+.PP
+.B dgtdrv
+is a xboard, uci and crafty compatible interface for DGT's electronic
+chess boards. For maximum compatibility it behaves acutally a chess
+engine.
+.PP
+It is meant as an interface between a chess playing program or a
+chess GUI and the DGT Digital Chess Board connected to the computer
+via serial or USB interface. 
+.B dgtdrv
+connects to the chess board and sends the moves to the chess software.
+If the chess software does not know how to interface with 
+.B dgtdrv
+it acts just like another chess engine. That is as long as the chess
+software is able to perform an engine-engine turnament 
+.B dgtdrv
+can be used in that mode to use the DGT chess board with that
+software.  However, if the software knows how to interact with 
+.B dgtdrv
+much more powerfull features are possible.
+.PP
+To connect to the DGT board 
+.B dgtdrv
+requires the 
+.B dgtnix library
+by Pierre Boulenguez to be installed. This library is available under
+the terms of the GNU General Public License form
+http://dgtnix.sourceforge.net.
+.PP
+This document describes the protocol used by the 
+.B dgtdrv
+engine. First it describes all commands that can be send to the
+engine, then it describes the various protocol modes supported for
+easy embedding of the engine into existing GUIs and finally the return
+values of the engine in case of certain events are given. This
+document serves as a reference for users and programmers, though most
+of the commands and all of the return values are of interest to
+programmers only.
+.PP
+For the users manual see
+.B dgtdrv
+(6).
+.PP
+.SH Mode independent commands
+.PP
+The commands in this section can be sent in any mode at any time to
+the engine and will be processed accordingly.  Depending on the mode
+the lines returned start with 
+.I info string
+(in UCI mode as shown) or just by
+.I info.
+The various modes are described below.
+.PP
+.SS sysinfo
+Dumps all current settings regarding the board connected and the
+underlying subsystem and the internal 
+.B dgtdrv
+engine setup. The output is given in the format of informative
+strings and will, on initial startup, look similar to
+.PP
+     info string Chessboard found and initialised.
+     info string DGT Projects - This DGT board is produced by DGT Projects.
+     info string dgtnix Version : 1.9.1
+     info string DGT Version    : 1.9000
+     info string DGT Serial No. : 03619
+     info string DGT Chess Clock: NONE
+     info string DGT connection : /dev/ttyUSB0
+     info string BUS Address    : 0x1c-0x23
+     info string Engine mode    : crafty
+     info string # No Clock detected
+     info string # DGT Driver Engine $Revision: 1.4 $
+     info string # by A. Wagner
+     info string # Debug level set to OFF
+     info string # sending white moves only
+     info string # Clock to Whites LEFT
+     info string # Move sensitivity 05:00 secs
+     info string # Move announcement: ON
+.PP
+.SS logo
+Just displays the startup logo.
+.SS display
+.PP
+Gives a visual display of the current board setup
+.PP
+Example:
+.PP
+    info string   -------------------------------
+    info string  |   | k |   |   |   |   |   |   | 8
+    info string  |---+---+---+---+---+---+---+---|
+    info string  | b |   |   |   |   |   |   |   | 7
+    info string  |---+---+---+---+---+---+---+---|
+    info string  |   |   |   |   |   |   |   |   | 6
+    info string  |---+---+---+---+---+---+---+---|
+    info string  |   |   |   | N |   |   |   |   | 5
+    info string  |---+---+---+---+---+---+---+---|
+    info string  |   |   |   |   |   |   |   |   | 4
+    info string  |---+---+---+---+---+---+---+---|
+    info string  |   |   |   |   |   |   |   |   | 3
+    info string  |---+---+---+---+---+---+---+---|
+    info string  |   |   |   | K |   |   |   |   | 2
+    info string  |---+---+---+---+---+---+---+---|
+    info string  |   |   |   |   |   |   |   |   | 1
+    info string  |---+---+---+---+---+---+---+---|
+    info string  | a   b   c   d   e   f   g   h |
+    info string  |====== Current DGT board ======|
+.PP
+.SS getposition
+.PP
+Sends the current board position in FEN-notation.
+.PP
+Example:
+.PP
+    info string FEN 1k6/b7/8/3N4/8/8/3K4/8 w - - 0 1
+.PP
+.SS checkforclock
+.PP
+Search again for a DGT Digital Chess Clock and enable clock events if
+a clock is found. Note that the clock is also searched automatically
+on program initialisation. Clock events also generate a message about
+the side to move every 500ms.
+.B Note:
+An attached clock is found if and only if the clock is running! A
+paused clock behaves as if no clock were present at all.
+.PP
+.SS getclock
+.PP
+If a DGT Digital Chess Clock is connected to the board the current
+time values are returned as well as the side to move according to the
+clocks button. Time values are given in "seconds remaining on the
+clock".
+.PP
+.SS rotateboard
+.PP
+The board orientation is specified already on the command line upon
+program startup (see 
+.B dgtdrv
+(6)) but it can also be changed within a running session using the
+.I rotateboard
+command. This may be usefull if the user enters setup mode and builds
+up a position for analysis viewed from a certain perspective. The new
+board orientation takes effect immediately, that is all piece
+positions are reported with new coordinate pairs. An informative
+string is returned as well as the current board position in FEN.
+.PP
+.SS sendwhite
+.PP
+Especially if the engine is used in engine tournament mode (ie. with a
+GUI that does not know and implement this protocol) it is required to
+send only the moves for the side the 
+.B dgtdrv
+is "playing"
+actively. Otherwise the GUI would flag the player with "illegal move"
+if he makes the moves for the other side on the board.
+.PP
+.SS sendblack
+.PP
+The same as 
+.I sendwhite
+but sends only black moves.
+.PP
+.SS sendboth
+.PP
+The same as 
+.I sendwhite
+but sends both moves. This is especially
+usefull for recording games, and it should be the default mode for
+GUIs that implement 
+.PP
+.SS announce
+.PP
+Toggles the call to the external program
+.I speak
+for move announcements. Default is ON, that is annouce moves. Move
+announcements should be disabled if the GUI can announce the moves
+itself. A string consisting of the long algebraic form of the move is
+passed to the 
+.I speak
+command, which is started in the background.
+.PP
+.B NOTE:
+Normally it is better to handle move announcements within the GUI, as
+this is more flexible, especially in some blitz modes with many moves
+made in a short ammount of time.
+.PP
+.SS Move Timing
+.PP
+In the standard setup
+.B dgtdrv
+waits for 5 seconds for a move to complete, that is from the lifting
+of the piece, the eventual removal of a taken piece, till it is set to
+its new position. In case that this period is not suitable for certain
+circumstances it can be adopted. The minimal ammount of time though is
+at 1s.
+.PP
+.RS
+.IP +
+Increment the seconds by 1
+.IP -
+Decrement the seconds by 1
+.IP > 
+Increment the micro-seconds by 10
+.IP <
+Decrement the micro-seconds by 10
+.RE
+.SS exit | quit | :q 
+.PP
+These three commands are actually all the same, they just exit the
+program gracefully.
+.PP
+.SS DEBUG
+.PP
+Cycles through the debug modes. Default is 0, which is incremented by
+each call. Note that this also enables dgtnix-debug output which has
+not to conform to the strings sent by 
+.B dgtdrv
+in normal operation. This command should never be sent by a GUI and is
+meant for console based debugging only. Debug messages from the
+degtnix library are prepended by 
+.I dgtnix-debug:
+.PP
+.SH UCI-Mode:
+.PP
+Many options for a normal chess GUI are not applicable for an input
+engine. E.g. it does not make sense to set the human player in ponder
+mode or ask for multi-PV analysis. All these commands are silently
+ignored by the engine and just dropped. The commands that are answered
+are listed in this section together with the answer they give.
+.PP
+In UCI-Mode all strings from the engine to the GUI start with
+.PP
+.B info string
+.PP
+The GUI has to parse these strings to retrieve information from the
+input engine. See section 
+.I Messages to the GUI
+below.
+.PP
+.SS uci
+.PP
+Initiates the UCI command mode. The engine will give the expected
+answers: it's name and the author string followed by
+.IR uciok
+signalling that the engine is ready.
+.PP
+.SS ucinewgame
+.PP
+Initiates a new game. In this case the engine answers by
+.PP
+.I info string FEN
+.PP
+followed by the current board position in FEN-notation. The GUI should
+parse this FEN-string and set up the pieces and internal board
+representations to represent the board.
+.PP
+.SS isready
+.PP
+Asks the engine to get ready. If everything is ok, it issues 
+.PP
+.I readyok
+.PP
+as expected.
+.PP
+.SH crafty-Mode
+.PP
+This mode consists of simply one command:
+.PP
+.SS crafty
+.PP
+It switches the engine to a crafty compatible mode for message
+strings. The crafty protocol however is very restricted no additional
+handling is done here. This mode just serves as an interface to this
+single engine probably replacing crafty's own 
+.B dgtdrv
+which is e.g. not able to handle USB boards and is not really
+portable.
+.PP
+Note: As crafty does not use any command to initiate communication
+this is actually the default mode of the engine. So if another mode is
+used it has to be implemented properly, ie. with the initiation
+command first! Do NOT rely upon this engine to be in any other mode
+if it is not initiated explicitly!
+.PP
+.SH xboard-Mode
+.PP
+To work with xboard compatible GUIs the commands in this section are
+implemented. All informations passed from the board to the GUI start
+with
+.PP
+.SS info
+.PP
+These lines have to been parsed by the GUI to extract additional
+informations. See section 
+.I Messages to the GUI
+below.
+.PP
+.SS xboard
+.PP
+Initiates the xboard mode.
+.PP
+.SS protover
+.PP
+This initiates xboard version 2. The GUI asks with this command for
+the features the engine supports. Allmost all are disabled, so the
+engine answers with
+.PP
+.I feature ping=0 setboard=0 playother=0 san=0 pause=1
+.PP
+.I feature usermove=0 time=0 draw=1 sigint=0 sigterm=1
+.PP
+.I feature reuse=1 analyze=0 colors=0 ics=0 name=0
+.PP
+.I feature myname=DGT Driver Engine $Revision: 1.4 $"
+.PP
+.I feature done=1
+.PP
+.SS new
+.PP
+Requests a new game. The engine answers with the current board
+position in FEN:
+.PP
+.B info FEN
+.SH Messages to the GUI
+.PP
+The follwoing messages are all sent as info (string) lines to the GUI
+and should be interpreted accordingly as they mean commands for the
+GUI where it has to act accordingly.
+.PP
+.SS !move now!
+.PP
+The user has lifted either king and set it back to its square to force
+the opponing engine to interrupt thingking and to move right now.
+.PP
+.SS !enter setup mode!
+.PP
+The user has lifted both kings from the board signalling that (s)he
+wants to set up a new position. Till both kings are back 
+.B dgtdrv
+does not send any moves at all. Upon leaving setup mode however the
+new board position is sent as FEN.
+.PP
+.SS !end setup mode!
+.PP
+The user set both kings back to the board and thus ends the position
+setup. This string is followed by the new board position as FEN. This
+FEN string has to be parsed and used to set the GUIs board
+presentation accordingly.
+.PP
+.SS !white to move!
+.PP
+Sets White to move next.
+.PP
+.SS !black to move!
+.PP
+Sets Black to move next.
+.PP
+.SS !new game!
+.PP
+The user requests a new game. This event is triggered by moving all
+pawns to the 2nd (7th) row and all pieces to the 1st (8th) row. Note
+that the pieces have not to be in the usual starting position though!
+This is to allow for Fisher Random Chess. For this reason the engine
+also sends a FEN-String with the current position.
+.PP
+.SS !end game 1-0!
+.PP
+Ends the game with a win for white. Equivalent to "black resigns".
+.PP
+.SS !end game 0-1!
+.PP
+Ends the game with a win for black. Equivalent to "white resigns".
+.PP
+.SS !end game 1/2-1/2!
+.PP
+Ends the game with a draw or respectively offers a draw to the engine
+if a game is actually played.
+.PP
+.SH Information to the GUI
+.PP
+The following strings are informative for the GUI and should be
+evaluated.
+.PP
+.SS # sending white moves only
+.PP
+The board is set to 
+.I sendwhite
+.PP
+This can be done via commandline parameters upon engine startup or by
+issuing the equivalent command.
+.PP
+.SS # sending black moves only
+The board is set to 
+.i sendblack
+.PP
+This can be done via commandline parameters upon engine startup or by
+issuing the equivalent command.
+.PP
+.SS # sending both moves
+.PP
+The board is set to 
+.I sendboth
+.PP
+This can be done via commandline parameters upon engine startup or by
+issuing the equivalent command.
+.PP
+.PP
+.SS # Opponent move: %s
+.PP
+As the GUI assumes 
+.B dgtdrv 
+to be a normal chess engine it also passes the moves of the opponent
+along to it. These moves are repeated as info strings by the driver
+and stored internally for comparision with the move the user actually
+performs on the board.
+.PP
+.SS # Wrong move performed: : %s instead of %s!
+.PP
+In normal game play the GUI passes the opponents move to 
+.B dgtdrv
+(see 
+.I # Opponent move
+above). These moves are stored and compared to the move the user
+actually performs on behalf of the opposing engine. If this comparison
+fails, the 
+.I # Wrong move performed
+Message is issued along with the move the user actually performed
+(first string) and the one that should have been performed (second
+string). The move can then be taken back and the proper one performed
+instead. The GUI should check for this message and respond
+accordingly. The first string gives the move actually performed, the
+second string the one that should have been performed.
+.PP
+.SS # Move announcement: [ON]/[OFF]
+.PP
+The string ON or OFF indicates wether moves will be announced by calls
+to an external command
+.I speak.
+If ON, the external command is called with a string consisting of the
+piece that was moved and the long algebraic move as a string argument.
+It is in the hands of the
+.I speak
+command to handle that properly, e.g. by reading out the move aloud. A
+simple sample script written in perl comes with the full distribution.
+.PP
+.SS # Clock to Whites RIGHT
+.PP
+Gives the board orientation. The chess clock is to White's RIGHT, that
+is the board is used "upside down". This mode is requested by
+commandline parameters. The board orientation has NO influence on the
+move notation sent to the GUI, the string can be silently ignored.
+.PP
+.SS # Clock to Whites LEFT
+.PP
+Gives the board orientation. The chess clock is to White's LEFT, that
+is the board is used in normal position. This mode is requested by
+commandline parameters. The board orientation has NO influence on the
+move notation sent to the GUI, the string can be silently ignored.
+.PP
+.SS # No Clock detected
+This string is returned on startup or if clock information is
+requested but not Chess Clock was found to be connected to the board.
+.SS # Time White: %i
+%i is replaced by the time value for White as returned by the DGT
+Digital Chess Clock. Timing for White is always associated with the
+timing for Black to be returned.
+.SS # Time Black: %i
+%i is replaced by the time value for Black as returned by the DGT
+Digital Chess Clock. Timing for Black is always associated with the
+timing for White to be returned.
+.SS # Move sensitivity %i:%i secs
+This gives the move sensitivity specified in seconds : micro seconds.
+This value should not need adoption, but it can be adjusted using the
++/- >/< commands.
+.SS # Debug level set to %s
+Displays the current debug level. It should be
+.I OFF
+for normal usage, as otherwise debug output from the 
+.I dgtnix
+library may confuse the GUI. (Those strings are prepended by
+.I dgtnix-debug:
+).
+%s is replaced by either
+.RS
+.I OFF
+No debug output
+.I ON
+Normal debugging but not clock informations
+.I FULL
+Full debugging including clock informations
+.RE
+.SS moving piece: %c
+.PP
+Informs the GUI about the piece that was moved. This string can be
+ignored, however it should of course reflect the piece that is also
+moved by the GUI when executing the move string sent. For this reason
+this string should be used to cross check for consistency of the GUI's
+and the DGT's board presentation. On discrepancies the GUI should
+issue a
+.I getposition
+command to retrieve the current board
+position.
+.PP
+.SS %c takes %c
+.PP
+If one piece takes the other this signals which piece thakes which. %c
+is replaced by the character representing the piece, that is p for a
+pawn, r for a rook, n for a knight, b for a bishop, q for the queen
+and k for the king. Uppercase letters represent white pieces,
+lowercase black ones. This string should be used to cross check the
+GUI's and the DGT's board representations to ensure consistency.
+.PP
+.SH Error handling
+.PP
+The driver issues the error messages given in this section.
+Info strings that contain the word 
+.I ERROR : 
+signify errors in general.
+.PP
+.SS Unable to open %s for writing
+.PP
+.B dgtdrv
+can not open %s for writing for whatever reason. This
+message is sent e.g. for 
+.B dgtdrv
+logfile, so a common reason might be that there are no permissions for
+the user to write to /tmp or the drive is full.
+.PP
+.SS Unable to open port: %s
+.PP
+The communications port to the board can not be opened for whatever
+reason. Common reason are insufficient rights for the user running
+.B dgtdrv
+, an invalid port name or another process blocking the
+port.
+.PP
+.SS Board is not responding!
+.PP
+.B dgtdrv
+was able to open the port but the digital chess board
+did not answer. Common reasons are the board to be connected to
+another port, a lacking power supply in case of the serial version
+of the board, a malfunction of the board or some reason for a broken
+connection.
+.PP
+.SS Unregognised response form dgtInit.
+.PP
+.B dgtdrv
+has no idea what the board tries to tell. So it gives
+up. (This error is actually passed through from the
+dgtnixlibrary.)
+.PP
+.SH Initialisation and status messages:
+.PP
+Upon successfull communication with the board some basic parameters
+are sent by 
+.B dgtdrv
+.PP
+.SS Chessboard found and initialised.
+.PP
+This message signifies a successfull initialisation of the DGT
+electronic chess board. It is followed by a one line statement about
+the board connected (ie. the first part of the trademark string). The
+full output reads for example:
+.PP
+    info string Chessboard found and initialised.
+    info string DGT Projects - This DGT board is produced by DGT Projects.
+.PP
+.SS dgtnix Version : %s
+.PP
+This gives the version number of the 
+.I dgtnix
+library (see: http://dgtnix.sourceforge.net) used by 
+.B dgtdrv
+.
+.PP
+.SS DGT Version    : %s
+.PP
+%s is replaced by the boards firmware version.
+.PP
+.SS DGT Serial No. : %s
+.PP
+%s is replaced by the boards serial number.
+.PP
+.SS DGT Chess Clock: %s
+.PP
+Signifies wether a DGT Digital Chess Clock was found to be connected
+to the DGT electronic chess board. %s is replaced by either
+.I NONE
+if no clock was detected or 
+.I FOUND
+if a clock is available. In this case one can use
+.I getclock
+to read out the clocks timing information and the side to move.
+.PP
+.SS DGT connection : %s
+%s is replaced by the current port that
+.B dgtdrv
+is using to communicate with the board.
+.SS BUS Address    : %s
+.PP
+%s is replaced by the BUS address of the board.
+.PP
+.SS Engine mode    : %s
+The 
+.B dgtdrv
+engine may be operated in various modes. Upon switching of the mode
+(see above) it is in
+.I crafty
+compatible setup as
+.I crafty
+does not send any startup command to its own supplied driver. %s is
+replaced by the current mode. Possible values are:
+.RS
+.IP crafty
+compatible for the console use with the bare crafty engine.
+.IP xboard
+for use with
+.I xboard
+in tournament mode or other GUIs that allow for xboard compatible
+engines in engine-engine mode.
+.IP UCI
+for use with GUIs that allow for UCI-engines in engine-tournament
+mode.
+.RE
+.PP
+All these modes are implemented in a minimal way as most of the
+commands normally send to a chess engine are of no importance for an
+input engine. Thes commands are thus silently ignored which keeps ans
+unaware GUI happy.
+.PP
+.SS "DGT Driver Engine $Revision: 1.4 $"
+.PP
+The name of the program as it appears via xboard or UCI. %i.%i is
+replaced by the current software revision.
+.PP
+.SH NO WARRANTIES
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+.SH SEE ALSO
+.PP
+.BR dgtdrv (6),
+.BR crafty (6),
+.BR xboard (6),
+.PP
+dgtdrv homepage: http://dgtdrv.sourceforge.net/
+.PP
+dgtnix homepage: http://dgtnix.sourceforge.net/
+.PP
+The dgtdrv manual
+.PP
+The GNU General Public License.
+.SH AUTHOR
+.PP
+Alexander Wagner using dgtnix from Pierre Boulenguez

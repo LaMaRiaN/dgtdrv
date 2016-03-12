@@ -1,0 +1,135 @@
+.\" -*-nroff-*-
+.\"
+.\"
+.\"     Copyright (C) 2007 Alexander Wagner a.wagner@stellarcom.org
+.\"
+.\"     This program is free software; you can redistribute it and/or modify
+.\"     it under the terms of the GNU General Public License as published by
+.\"     the Free Software Foundation; either version 2 of the License, or
+.\"     (at your option) any later version.
+.\"
+.\"     This program is distributed in the hope that it will be useful,
+.\"     but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\"     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\"     GNU General Public License for more details.
+.\"
+.\"     You should have received a copy of the GNU General Public License
+.\"     along with this program; if not, write to the Free Software
+.\"     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
+.\"
+.TH dgtdrv 6 "January 2007" "dgtdrv (chess engine)" "User Manuals"
+.SH NAME
+dgtdrv \- a chess engine to interface with the DGT Digital Chess Boards
+.SH SYNOPSIS
+.PP
+.B dgtdrv
+<port>
+[l|r][a|b|w]
+[Enginename]
+.SH DESCRIPTION
+.PP
+.B dgtdrv
+is a xboard, uci and crafty compatible interface for DGT's electronic
+chess boards. For maximum compatibility it behaves acutally a chess
+engine.
+.PP
+It is meant as an interface between your chess playing program or your
+chess GUI and the DGT Digital Chess Board connected to your computer
+via serial or USB interface. Dgtdrv connects to your chess board and
+sends the moves you make to your chess software. If your chess
+software does not know how to interface with dgtdrv it acts just like
+another chess engine. That is as long as your chess software is able
+to perform an engine-engine turnament you can use dgtdrv in that mode
+to use your chess board with that software. However, if the software
+knows how to interact dgtdrv much more powerfull features are
+possible.
+.PP
+To connect to your board dgtdrv requires the dgtnix library by Pierre
+Boulenguez to be installed and available on your system. This library
+is available under the terms of the GNU General Public License form
+http://dgtnix.sourceforge.net.
+.SH OPTIONS
+.PP
+.IP "<port> \fIcom-port\fP"
+The com port your chess board is connected to. The DGT chess board
+exists in serval versions:
+.RS
+.IP "serial connector"
+In this case on Linux /dev/ttsS? should be used, e.g. /dev/ttyS0 for
+the first serial. Other flavaours of Un*x use different names. Please
+refert to the manuals.
+port.
+.IP "USB conector"
+Several locations of the proper com port are possible depending on the
+actual setup. This als applies if a serial board is used by means of a
+serial to USB convertor. Common values for USB serial ports again on
+Linux (for other flavours of Un*x please refer to the manuals) are
+.RS
+.TP 
+/dev/ttyUSB?
+.TP 
+/dev/usb/tts/*
+.TP 
+/dev/usbdev*
+.RE
+.IP "[l|r][a|b|w] \fIoptions\fP"
+These characters define the setup of the dgtdrv, that is the
+orientation of the chessboard and which moves to send as actual moves.
+The syntax is compatible with crafty, the ordering is important.
+.RS
+.IP "[l|r] \fIorientation of the board\fP"
+l for left and r for right define the position of the DGT chess clock
+from whites point of view. l is the normal setup where the clock is
+placed to whites left, r uses the board upside down with the clock to
+whites right.
+.IP "[a|b|w] \fIwhich moves to send\fP"
+This character tells dgtdrv which moves to send as actual moves. This
+handling is important as the user has to make all the moves on the
+board which the opponent (engine) issues.
+.RS
+.IP "a"
+Put the board in analysis mode, that is send all moves as actual
+moves. This will confuse the GUI if it does not know about this, as
+the GUI will think that White is moving Black pieces and vice versa.
+xboard e.g. will issue an "illegal move" and end the game to the
+opponents favour immediately.
+.IP "b"
+This will send only moves by the black pieces as actual moves. Moving
+white pieces will sent to the GUI as informative strings however. They
+will show up in the info window if the GUI offers one.
+.IP "w"
+The same as "b" but for white moves.
+.RE
+.RE
+.PP
+.PP
+.IP "<name> \fIUsername\fP"
+Some GUIs use the name the engine passes to them for the PNG header
+fields upon saving a game. For this reason the name the engine reports
+to the GUI can be set here. This argument is optional, if not given it
+defaults to the programs full name and revision.
+.B Note:
+No spaces are allowed for the name, quoting will not work here.
+.\" ----
+.SH NO WARRANTIES
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+.SH SEE ALSO
+.PP
+.BR dgtdrv (3),
+.BR crafty (6),
+.BR xboard (6),
+.PP
+dgtdrv homepage: http://dgtdrv.sourceforge.net/
+.PP
+dgtnix homepage: http://dgtnix.sourceforge.net/
+.PP
+The dgtdrv manual
+.PP
+The GNU General Public License.
+.SH AUTHOR
+.PP
+Alexander Wagner using dgtnix from Pierre Boulenguez
+

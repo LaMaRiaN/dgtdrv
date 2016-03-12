@@ -1,0 +1,111 @@
+Before the engine can be built please ensure the availablity of the
+dgtnix library V1.8 or higher and the proper dev-files. The dgtnix
+library can be obtained from http://dgtnix.sourceforge.net under the
+terms of the GNU General Public License.
+
+If the dgtnix library is not available via a system wide installation
+do not forget to set LD_LIBRARY_PATH to contain the directory of
+libdgtnix.so. For Bash-like shells use
+   export LD_LIBRARY_PATH="path to the libdgtnix.so file":$LD_LIBRARY_PATH
+for TCSH like shells use
+   setenv LD_LIBRARY_PATH "path to the libdgtnix.so file":$LD_LIBRARY_PATH
+
+After a successfull build and installation of the library adopt the
+Makefile to suit your setup. Especially the follwing parameters might
+need adjustment:
+
+   DGTNIX   = ../dgtnix
+   PORT     = /dev/ttyUSB0
+   PARAMS   = rw
+
+DGTNIX gives the path to dgtnix.h and the dgtnix library for linking.
+PORT is the port the chess board is connected to. It is only used for
+'make run'. The same is PARAMS which are the paremters given to dgtdrv
+upon run. (See dgtdrv.1 for details).
+
+All other parameters in the Makefile should be suitable for Linux
+(Debian GNU/Linux 3.1).
+
+Run 'make' to build the dgtdrv engine. Note that the binary uses an
+extension matching your platform (e.g. it is called dgtdrv2.i686 on a
+PC or dgtdrv2.alpha on an Alpha machine running Linux.)
+
+Run 'make run' to test the engine in console mode. The DGT Board
+should be connected for this test and have some pieces set up. A test
+run should look like this:
+
+==========================================================================
+   $ make run
+   info string ---------------------------------------------
+   info string                                              
+   info string         /      /      /                      
+   info string     ___/ ___ _/_  ___/ /_- |  /        POSIX 
+   info string    /  / /  / /   /  / /    | /        driver 
+   info string   (__/ (__/ (_  (__/ /     |/        engine  
+   info string       ___/                                   
+   info string              for the DGT digital chess board 
+   info string ---------------------------------------------
+   info string (c) 2006-2007 by Alexander Wagner            
+   info string     $Revision: 1.4 $
+   info string ---------------------------------------------
+   info string Chessboard found and initialised.
+   info string DGT Projects - This DGT board is produced by DGT Projects.
+   info string dgtnix Version : 1.8137
+   info string DGT Version    : 1.5000
+   info string DGT Serial No. : 03619
+   info string DGT Chess Clock: NONE
+   info string DGT connection : /dev/ttyUSB0
+   info string BUS Address    : 0x1c-0x23
+   info string Engine mode    : crafty
+   info string FEN RNBKQBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbkqbnr w - - 0 1
+
+==========================================================================
+
+The final FEN-string represents your board setup. (Here an the
+inverted default setup). Issue the command "display" to get an easily
+readable graphical representation. Use "quit" (or ":q") to exit the
+program nicely.
+
+For a detailed users guide see dgtdrv.6, the programmers documentation
+and full command set can be found in dgtdrv.3
+
+
+
+Adding support to xboard
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The patch against xboard is included as xboard_4.2.7-2_DGT.patch. It
+requires xboard 4.2.7 Debian patch level 2. The necessary patch from
+the Debian project is named xboard_4.2.7-2.patch and is included as
+well.
+
+- Extract the xboard 4.2.7 source files.
+- apply the 4.2.7-2 patch
+- apply the DGT patch itself
+
+To use it fire up xboard with dgtdrv2 configured as first or second
+chess engine (using -fcp or -scp command line parameters). Use -fcp to
+play white, -scp to play black. In xboard select "Two Machines" from
+teh "Mode" menue.
+
+
+
+Adding support to scid
+~~~~~~~~~~~~~~~~~~~~~~
+
+Append the content of inputengine.tcl to the scid-binary. This binary
+is pure TCL/TK code so it can be opened by any text editor (e.g. vi)
+or just use something like:
+
+    $ cat `which scid` > scid-iee
+    $ cat inputengine.tcl >> scid-iee
+    $ ./scid
+
+The patch will add a new menue item to the "Tools" menue of scid named
+"Connect Hardware". Select configure to specify port and binary for
+the input engine plus the parameters to use. dgtdrv2 will be fired up
+and moves can be performed on the DGT board.
+
+Alternatively, if the default setup matches the requirements just
+click on the new button in the button bar to fire up the engine
+directly. The default configuration can be changed in inputengine.tcl.
